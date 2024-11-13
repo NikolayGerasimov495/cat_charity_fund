@@ -1,4 +1,5 @@
 from typing import Optional, Union
+import logging
 
 from fastapi import Depends, Request
 from fastapi_users import (BaseUserManager, FastAPIUsers, IntegerIDMixin,
@@ -12,6 +13,11 @@ from app.core.config import settings
 from app.core.db import get_async_session
 from app.models.user import User
 from app.schemas.user import UserCreate
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+MIN_PASSWORD_LENGTH = 3
 
 
 async def get_user_db(session: AsyncSession = Depends(get_async_session)):
@@ -35,11 +41,11 @@ auth_backend = AuthenticationBackend(
 class UserManager(IntegerIDMixin, BaseUserManager[User, int]):
 
     async def validate_password(
-        self,
-        password: str,
-        user: Union[UserCreate, User],
+            self,
+            password: str,
+            user: Union[UserCreate, User],
     ) -> None:
-        if len(password) < 3:
+        if len(password) < MIN_PASSWORD_LENGTH:
             raise InvalidPasswordException(
                 reason='Password should be at least 3 characters'
             )
@@ -51,7 +57,7 @@ class UserManager(IntegerIDMixin, BaseUserManager[User, int]):
     async def on_after_register(
             self, user: User, request: Optional[Request] = None
     ):
-        print(f'Пользователь {user.email} зарегистрирован.')
+        logger.info(f'Пользователь {user.email} зарегистрирован.')
 
 
 async def get_user_manager(user_db=Depends(get_user_db)):
